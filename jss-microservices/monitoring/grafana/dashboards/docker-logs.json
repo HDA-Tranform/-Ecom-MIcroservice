@@ -1,0 +1,51 @@
+{
+  "id": null,
+  "uid": "docker-logs",
+  "title": "Docker Logs (Loki)",
+  "tags": ["loki", "logs"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "type": "query",
+        "datasource": "Loki",
+        "query": "label_values({job=\"docker\"}, container)",
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": "Loki",
+        "query": "label_values({job=\"docker\"}, service)",
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "logs",
+      "title": "Container Logs",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 18 },
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "{job=\"docker\", container=~\"$container\", service=~\"$service\"}"
+        }
+      ]
+    }
+  ]
+}

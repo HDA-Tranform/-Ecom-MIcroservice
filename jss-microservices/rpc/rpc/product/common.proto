@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package product;
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/product";
+
+message User {
+    string dummy = 1;
+}
+
+message Product {
+    int32 id = 1;
+    string name = 2;
+    string code = 3;
+    int32 category_id = 4;
+    double weight = 5;
+    double gold_price_at_time = 6;
+    double labor_cost = 7;
+    double stone_cost = 8;
+    double markup_rate = 9;
+    double selling_price = 10;
+    int32 warranty_period = 11;
+    string image = 12;
+    string created_at = 13; // ISO8601
+    string updated_at = 14;
+
+    int32 stock = 15;
+    int32 buy_turn = 16;
+}
+
+message ProductCategory {
+    int32 id = 1;
+    string name = 2;
+}
+
+message Customer {
+    int32 id = 1;
+    string name = 2;
+    string phone = 3;
+    string email = 4;
+    string address = 5;
+    string created_at = 6;
+    string updated_at = 7;
+}

@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/mq/gen/events";
+
+message ProductEvent {
+    string product_id = 1;
+}

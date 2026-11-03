@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  loyalty-postgres:
+    image: postgres:14-alpine
+    container_name: loyalty-postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=jss_loyalty
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root -d jss_loyalty" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "9996:5432"
+    networks:
+      - jss-network
+    volumes:
+      - ./data-loyalty-postgres/:/var/lib/postgresql/data
+  loyalty-redis:
+    image: redis:7-alpine
+
+  loyalty-migrate:
+    build: ./loyalty-service
+    command: [ "/app/migrate", "-path", "./db/migration", "-database", "postgresql://root:secret@loyalty-postgres:5432/jss_loyalty?sslmode=disable", "-verbose", "up" ]
+    depends_on:
+      - loyalty-postgres
+    networks:
+      - jss-network
+
+  loyalty-seed:
+    build: ./loyalty-service
+    command: [ "/app/scripts/seed/seed" ]
+    environment:
+      - DB_SOURCE=postgresql://root:secret@loyalty-postgres:5432/jss_loyalty?sslmode=disable
+    depends_on:
+      - loyalty-migrate
+    networks:
+      - jss-network
+
+  loyalty-service:
+    build:
+      context: ./loyalty-service
+      dockerfile: Dockerfile
+    container_name: loyalty-service
+    ports:
+      - "8084:8080"
+      - "50004:50051"
+    environment:
+      - DB_SOURCE=postgresql://root:secret@loyalty-postgres:5432/jss_loyalty?sslmode=disable
+      - REDIS_ADDRESS=redis:6379
+    depends_on:
+      - loyalty-migrate
+      - loyalty-postgres
+      - loyalty-redis
+    networks:
+      - jss-network
+    # entrypoint:
+    #   [
+    #     "/app/wait-for.sh",
+    #     "postgres:5432",
+    #     "--",
+    #     "/app/start.sh"
+    #   ]
+    # command: [ "/app/main" ]
+volumes:
+  loyalty-postgres-volume:
+networks:
+  jss-network:

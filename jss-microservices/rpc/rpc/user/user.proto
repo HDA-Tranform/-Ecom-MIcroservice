@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package auth;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/user;userpb";
+
+// -----------------------------------------------------------------------------
+// ENUMS.
+// -----------------------------------------------------------------------------
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ADMIN            = 1;
+  MANAGER          = 2;
+  STAFF            = 3;
+}
+
+// -----------------------------------------------------------------------------
+// MESSAGES
+// -----------------------------------------------------------------------------
+
+message CreateUserRequest {
+  string username = 1 [(google.api.field_behavior) = REQUIRED];
+  string email    = 2 [(google.api.field_behavior) = REQUIRED];
+  string password = 3 [(google.api.field_behavior) = REQUIRED];
+  Role   role     = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateUserRequest {
+  string id       = 1 [(google.api.field_behavior) = REQUIRED];
+  string username = 2;
+  string email    = 3;
+  Role   role     = 4;
+}
+
+message GetUserRequest {
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteUserRequest {
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UserResponse {
+  string id       = 1;
+  string username = 2;
+  string email    = 3;
+  Role   role     = 4;
+}
+
+message ListUsersResponse {
+  repeated UserResponse users = 1;
+}
+
+// -----------------------------------------------------------------------------
+// SERVICE
+// -----------------------------------------------------------------------------
+
+service UserService {
+  // Create a new user (Admin can create Manager/Staff; Manager only Staff)
+  rpc CreateUser(CreateUserRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users"
+      body: "*"
+    };
+  }
+
+  // List users (Admin lists all; Manager lists Staff)
+  rpc ListUsers(google.protobuf.Empty) returns (ListUsersResponse) {
+    option (google.api.http) = {
+      get: "/v1/users"
+    };
+  }
+
+  // Get single user
+  rpc GetUser(GetUserRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{id}"
+    };
+  }
+
+  // Update a user
+  rpc UpdateUser(UpdateUserRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/{id}"
+      body: "*"
+    };
+  }
+
+  // Delete a user
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/users/{id}"
+    };
+  }
+
+  rpc GetMe(google.protobuf.Empty) returns (UserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/me"
+    };
+  }
+}

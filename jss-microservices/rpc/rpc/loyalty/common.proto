@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/loyalty";
+
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Loyalty Service Common API";
+    version: "1.0";
+    description: "Common messages and entities for Loyalty Service";
+  };
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+};
+
+// Pagination request message
+message PaginationRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Pagination Request"
+      description: "Pagination parameters for list requests"
+      required: ["limit", "page"]
+    }
+  };
+
+  int32 limit = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Maximum number of items to return"
+    minimum: 1
+    maximum: 100
+    default: "10"
+  }];
+  
+  int32 page = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Page, default = 1"
+    minimum: 0
+    default: "0"
+  }];
+}
+
+// Pagination response message
+message PaginationResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Pagination Response"
+      description: "Pagination metadata for list responses"
+    }
+  };
+
+  int32 total = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Total number of items available"
+  }];
+  
+  int32 limit = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Maximum number of items returned"
+  }];
+  
+  int32 page = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Page, default = 1"
+  }];
+  
+  bool has_next = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Whether there are more items available"
+  }];
+}
+
+// Loyalty Point entity
+message LoyaltyPoint {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Loyalty Point"
+      description: "A loyalty point record for a customer"
+      required: ["customer_id", "points", "source"]
+    }
+  };
+
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Unique identifier for the loyalty point record"
+    read_only: true
+  }];
+  
+  int32 customer_id = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the customer who earned the points"
+  }];
+  
+  int32 points = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Number of points (can be negative for redemptions)"
+  }];
+  
+  string source = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Source of the points (e.g., 'purchase', 'referral', 'bonus')"
+    max_length: 50
+  }];
+  
+  optional int32 reference_id = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Reference ID to the source transaction (e.g., order_id)"
+  }];
+  
+  google.protobuf.Timestamp created_at = 6 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "When the points were created"
+    read_only: true
+  }];
+}
+
+// Voucher entity
+message Voucher {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Voucher"
+      description: "A discount voucher"
+      required: ["code", "discount_type", "discount_value", "start_date", "end_date"]
+    }
+  };
+
+  enum DiscountType {
+    DISCOUNT_TYPE_UNSPECIFIED = 0;
+    PERCENTAGE = 1;
+    FIXED_AMOUNT = 2;
+    FREE_SHIPPING = 3;
+  }
+
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Unique identifier for the voucher"
+    read_only: true
+  }];
+  
+  string code = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Unique voucher code"
+    max_length: 50
+  }];
+  
+  optional string description = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Description of the voucher"
+  }];
+  
+  DiscountType discount_type = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Type of discount"
+  }];
+  
+  double discount_value = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Discount value (percentage or fixed amount)"
+  }];
+  
+  string start_date = 6 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Start date of the voucher validity (YYYY-MM-DD format)"
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+  }];
+  
+  string end_date = 7 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "End date of the voucher validity (YYYY-MM-DD format)"
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+  }];
+  
+  optional int32 usage_limit = 8 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Maximum number of times this voucher can be used"
+    minimum: 1
+    default: "1"
+  }];
+  
+  google.protobuf.Timestamp created_at = 9 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "When the voucher was created"
+    read_only: true
+  }];
+
+  optional int32 used_number = 10;
+}
+
+// Customer Voucher entity
+message CustomerVoucher {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Customer Voucher"
+      description: "A voucher assigned to a customer"
+      required: ["customer_id", "voucher_id"]
+    }
+  };
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    UNUSED = 1;
+    USED = 2;
+    EXPIRED = 3;
+    CANCELLED = 4;
+  }
+
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Unique identifier for the customer voucher record"
+    read_only: true
+  }];
+  
+  int32 customer_id = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the customer who owns the voucher"
+  }];
+  
+  int32 voucher_id = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the voucher"
+  }];
+  
+  Status status = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Current status of the customer voucher"
+    default: "UNUSED"
+  }];
+  
+  optional google.protobuf.Timestamp used_at = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "When the voucher was used"
+    read_only: true
+  }];
+  
+  // Embedded voucher details for convenience in responses
+  optional Voucher voucher = 6 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Voucher details (populated in list responses)"
+    read_only: true
+  }];
+}

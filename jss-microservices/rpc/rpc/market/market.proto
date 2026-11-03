@@ -1,0 +1,523 @@
+syntax = "proto3";
+
+package market;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/market";
+
+// Swagger configuration
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Market Service API";
+    version: "1.0";
+    description: "API for managing gold prices and buyback policies";
+    contact: {
+      name: "Market Service Team";
+      url: "https://github.com/linhhuynhcoding/jss-microservice";
+      email: "support@goldservice.com";
+    };
+  };
+  host: "";
+  schemes: HTTPS;
+  schemes: HTTP;
+  consumes: "application/json";
+  produces: "application/json";
+  security_definitions: {
+    security: {
+      key: "bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+        description: "Authentication token, prefixed by Bearer: Bearer <token>";
+      }
+    }
+  };
+  security: {
+    security_requirement: {
+      key: "bearer";
+    }
+  };
+};
+
+// ===== GOLD PRICE MESSAGES =====
+
+message GoldPrice {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Gold Price";
+      description: "Represents a gold price record";
+      required: ["gold_type", "buy_price", "sell_price"];
+    }
+  };
+
+  int64 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Unique identifier for the gold price record";
+    read_only: true;
+  }];
+
+  google.protobuf.Timestamp date = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Date and time of the price record";
+  }];
+
+  string gold_type = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Type of gold (e.g., 24k, 18k, 14k)";
+    max_length: 50;
+  }];
+
+  float buy_price = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Buy price in decimal format";
+    pattern: "^[0-9]+(\\.[0-9]{1,2})?$";
+  }];
+
+  float sell_price = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Sell price in decimal format";
+    pattern: "^[0-9]+(\\.[0-9]{1,2})?$";
+  }];
+}
+
+message CreateGoldPriceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Gold Price Request";
+      description: "Request to create a new gold price record";
+    }
+  };
+
+  google.protobuf.Timestamp date = 1;
+  string gold_type = 2;
+  float buy_price = 3;
+  float sell_price = 4;
+}
+
+message CreateGoldPriceResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Gold Price Response";
+      description: "Response containing the created gold price record";
+    }
+  };
+
+  GoldPrice gold_price = 1;
+}
+
+message GetGoldPriceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Get Gold Price Request";
+      description: "Request to get a gold price record by ID";
+    }
+  };
+
+  int64 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the gold price record to retrieve";
+  }];
+}
+
+message GetGoldPriceResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Get Gold Price Response";
+      description: "Response containing the requested gold price record";
+    }
+  };
+
+  GoldPrice gold_price = 1;
+}
+
+message GetLatestGoldPriceRequest {
+}
+
+message GetLatestGoldPriceResponse {
+  repeated GoldPrice gold_prices = 1;
+}
+
+message ListGoldPricesRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "List Gold Prices Request";
+      description: "Request to list gold price records with pagination";
+    }
+  };
+
+  int32 limit = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Maximum number of records to return";
+    minimum: 1;
+    maximum: 100;
+    default: "10";
+  }];
+
+  int32 offset = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Number of records to skip";
+    minimum: 0;
+    default: "0";
+  }];
+
+  string gold_type = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Filter by gold type (optional)";
+  }];
+}
+
+message ListGoldPricesResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "List Gold Prices Response";
+      description: "Response containing list of gold price records";
+    }
+  };
+
+  repeated GoldPrice gold_prices = 1;
+  int32 total_count = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Total number of records available";
+  }];
+}
+
+message UpdateGoldPriceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Update Gold Price Request";
+      description: "Request to update an existing gold price record";
+    }
+  };
+
+  int64 id = 1;
+  google.protobuf.Timestamp date = 2;
+  string gold_type = 3;
+  float buy_price = 4;
+  float sell_price = 5;
+}
+
+message UpdateGoldPriceResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Update Gold Price Response";
+      description: "Response containing the updated gold price record";
+    }
+  };
+
+  GoldPrice gold_price = 1;
+}
+
+message DeleteGoldPriceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Delete Gold Price Request";
+      description: "Request to delete a gold price record";
+    }
+  };
+
+  int64 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the gold price record to delete";
+  }];
+}
+
+// ===== BUYBACK POLICY MESSAGES =====
+
+message BuybackPolicy {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Buyback Policy";
+      description: "Represents a buyback policy record";
+      required: ["product_type", "buyback_rate"];
+    }
+  };
+
+  int64 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Unique identifier for the buyback policy";
+    read_only: true;
+  }];
+
+  string product_type = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Type of product for buyback";
+    max_length: 100;
+  }];
+
+  float buyback_rate = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Buyback rate as percentage (e.g., 95.50)";
+    pattern: "^[0-9]+(\\.[0-9]{1,2})?$";
+  }];
+
+  string description = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Description of the buyback policy";
+  }];
+
+  google.protobuf.Timestamp created_at = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Creation timestamp";
+    read_only: true;
+  }];
+}
+
+message CreateBuybackPolicyRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Buyback Policy Request";
+      description: "Request to create a new buyback policy";
+    }
+  };
+
+  string product_type = 1;
+  float buyback_rate = 2;
+  string description = 3;
+}
+
+message CreateBuybackPolicyResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Buyback Policy Response";
+      description: "Response containing the created buyback policy";
+    }
+  };
+
+  BuybackPolicy buyback_policy = 1;
+}
+
+message GetBuybackPolicyRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Get Buyback Policy Request";
+      description: "Request to get a buyback policy by ID";
+    }
+  };
+
+  int64 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the buyback policy to retrieve";
+  }];
+}
+
+message GetBuybackPolicyResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Get Buyback Policy Response";
+      description: "Response containing the requested buyback policy";
+    }
+  };
+
+  BuybackPolicy buyback_policy = 1;
+}
+
+message ListBuybackPoliciesRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "List Buyback Policies Request";
+      description: "Request to list buyback policies with pagination";
+    }
+  };
+
+  int32 limit = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Maximum number of records to return";
+    minimum: 1;
+    maximum: 100;
+    default: "10";
+  }];
+
+  int32 offset = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Number of records to skip";
+    minimum: 0;
+    default: "0";
+  }];
+
+  string product_type = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Filter by product type (optional)";
+  }];
+}
+
+message ListBuybackPoliciesResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "List Buyback Policies Response";
+      description: "Response containing list of buyback policies";
+    }
+  };
+
+  repeated BuybackPolicy buyback_policies = 1;
+  int32 total_count = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Total number of records available";
+  }];
+}
+
+message UpdateBuybackPolicyRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Update Buyback Policy Request";
+      description: "Request to update an existing buyback policy";
+    }
+  };
+
+  int64 id = 1;
+  string product_type = 2;
+  float buyback_rate = 3;
+  string description = 4;
+}
+
+message UpdateBuybackPolicyResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Update Buyback Policy Response";
+      description: "Response containing the updated buyback policy";
+    }
+  };
+
+  BuybackPolicy buyback_policy = 1;
+}
+
+message DeleteBuybackPolicyRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Delete Buyback Policy Request";
+      description: "Request to delete a buyback policy";
+    }
+  };
+
+  int64 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the buyback policy to delete";
+  }];
+}
+
+// ===== SERVICE DEFINITIONS =====
+
+service Market {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service for managing gold prices";
+  };
+
+  // Create a new gold price record
+  rpc CreateGoldPrice(CreateGoldPriceRequest) returns (CreateGoldPriceResponse) {
+    option (google.api.http) = {
+      post: "/v1/gold-prices"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create gold price";
+      description: "Creates a new gold price record";
+      tags: "Gold Prices";
+    };
+  }
+
+  // Get a gold price record by ID
+  rpc GetGoldPrice(GetGoldPriceRequest) returns (GetGoldPriceResponse) {
+    option (google.api.http) = {
+      get: "/v1/gold-prices/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get gold price";
+      description: "Retrieves a gold price record by ID";
+      tags: "Gold Prices";
+    };
+  }
+
+    // Get a lastest gold price 
+  rpc GetLatestGoldPrice(GetLatestGoldPriceRequest) returns (GetLatestGoldPriceResponse) {
+    option (google.api.http) = {
+      get: "/v1/latest-gold-prices"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get gold price";
+      description: "Retrieves a gold price record";
+      tags: "Gold Prices";
+    };
+  }
+  
+
+  // List gold price records with pagination
+  rpc ListGoldPrices(ListGoldPricesRequest) returns (ListGoldPricesResponse) {
+    option (google.api.http) = {
+      get: "/v1/gold-prices"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List gold prices";
+      description: "Lists gold price records with pagination and optional filtering";
+      tags: "Gold Prices";
+    };
+  }
+
+  // Update an existing gold price record
+  rpc UpdateGoldPrice(UpdateGoldPriceRequest) returns (UpdateGoldPriceResponse) {
+    option (google.api.http) = {
+      put: "/v1/gold-prices/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update gold price";
+      description: "Updates an existing gold price record";
+      tags: "Gold Prices";
+    };
+  }
+
+  // Delete a gold price record
+  rpc DeleteGoldPrice(DeleteGoldPriceRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/gold-prices/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete gold price";
+      description: "Deletes a gold price record by ID";
+      tags: "Gold Prices";
+    };
+  }
+
+  // Create a new buyback policy
+  rpc CreateBuybackPolicy(CreateBuybackPolicyRequest) returns (CreateBuybackPolicyResponse) {
+    option (google.api.http) = {
+      post: "/v1/buyback-policies"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create buyback policy";
+      description: "Creates a new buyback policy";
+      tags: "Buyback Policies";
+    };
+  }
+
+  // Get a buyback policy by ID
+  rpc GetBuybackPolicy(GetBuybackPolicyRequest) returns (GetBuybackPolicyResponse) {
+    option (google.api.http) = {
+      get: "/v1/buyback-policies/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get buyback policy";
+      description: "Retrieves a buyback policy by ID";
+      tags: "Buyback Policies";
+    };
+  }
+
+  // List buyback policies with pagination
+  rpc ListBuybackPolicies(ListBuybackPoliciesRequest) returns (ListBuybackPoliciesResponse) {
+    option (google.api.http) = {
+      get: "/v1/buyback-policies"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List buyback policies";
+      description: "Lists buyback policies with pagination and optional filtering";
+      tags: "Buyback Policies";
+    };
+  }
+
+  // Update an existing buyback policy
+  rpc UpdateBuybackPolicy(UpdateBuybackPolicyRequest) returns (UpdateBuybackPolicyResponse) {
+    option (google.api.http) = {
+      put: "/v1/buyback-policies/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update buyback policy";
+      description: "Updates an existing buyback policy";
+      tags: "Buyback Policies";
+    };
+  }
+
+  // Delete a buyback policy
+  rpc DeleteBuybackPolicy(DeleteBuybackPolicyRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/buyback-policies/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete buyback policy";
+      description: "Deletes a buyback policy by ID";
+      tags: "Buyback Policies";
+    };
+  }
+}

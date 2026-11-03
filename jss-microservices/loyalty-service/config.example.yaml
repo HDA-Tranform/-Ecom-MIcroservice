@@ -1,0 +1,4 @@
+MQ_CONN_STR: amqp://admin:admin@localhost:5672/
+DB_SOURCE: postgres://postgres:postgres@localhost:5432/loyalty?sslmode=disable
+GRPC_PORT: "50051"
+HTTP_PORT: "8080"

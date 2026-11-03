@@ -1,0 +1,72 @@
+version: "3.9"
+services:
+  market-postgres:
+    image: postgres:14-alpine
+    container_name: market-postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=jss_market
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root -d jss_market" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "9998:5432"
+    networks:
+      - jss-network
+    volumes:
+      - ./data-market-postgres:/var/lib/postgresql/data
+  market-redis:
+    image: redis:7-alpine
+
+  market-migrate:
+    build: ./market-service
+    container_name: market-migrate
+    command: [ "/app/migrate", "-path", "./db/migration", "-database", "postgresql://root:secret@market-postgres:5432/jss_market?sslmode=disable", "-verbose", "up" ]
+    depends_on:
+      - market-postgres
+    networks:
+      - jss-network
+
+  market-seed:
+    build: ./market-service
+    container_name: market-seed
+    command: [ "/app/scripts/seed/seed" ]
+    environment:
+      - DB_SOURCE=postgresql://root:secret@market-postgres:5432/jss_market?sslmode=disable
+    depends_on:
+      - market-migrate
+    networks:
+      - jss-network
+
+  market-service:
+    build:
+      context: ./market-service
+      dockerfile: Dockerfile
+    container_name: market-service
+    ports:
+      - "8086:8080"
+      - "50006:50051"
+    environment:
+      - DB_SOURCE=postgresql://root:secret@market-postgres:5432/jss_market?sslmode=disable
+      - REDIS_ADDRESS=redis:6379
+    depends_on:
+      - market-migrate
+      - market-postgres
+      - market-redis
+    networks:
+      - jss-network
+    # entrypoint:
+    #   [
+    #     "/app/wait-for.sh",
+    #     "postgres:5432",
+    #     "--",
+    #     "/app/start.sh"
+    #   ]
+    # command: [ "/app/main" ]
+volumes:
+  data-market-postgres:
+networks:
+  jss-network:

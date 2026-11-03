@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package auth;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/auth;authpb";
+
+// Auth RPCs
+
+message LoginRequest {
+  string email = 1 [(google.api.field_behavior)=REQUIRED];
+  string password = 2 [(google.api.field_behavior)=REQUIRED];
+  string userAgent = 3;
+  string ip = 4;
+}
+
+message TokenResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+message RefreshTokenRequest {
+  string refreshToken = 1 [(google.api.field_behavior)=REQUIRED];
+  string userAgent = 2;
+  string ip = 3;
+}
+
+message LogoutRequest {
+  string refreshToken = 1 [(google.api.field_behavior)=REQUIRED];
+}
+
+message ValidateTokenRequest {
+  string accessToken = 1 [(google.api.field_behavior)=REQUIRED];
+}
+
+message ValidateTokenResponse {
+  bool isValid = 1;
+  string userId = 2;
+  string role = 3;
+}
+
+service AuthService {
+  rpc Login(LoginRequest) returns (TokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/login"
+      body: "*"
+    };
+  }
+  rpc RefreshToken(RefreshTokenRequest) returns (TokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/refresh-token"
+      body: "*"
+    };
+  }
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/logout"
+      body: "*"
+    };
+  }
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/validate"
+      body: "*"
+    };
+  }
+  // Add other endpoints: SendOTP, Register, ForgotPassword, GoogleOAuth, etc.
+}

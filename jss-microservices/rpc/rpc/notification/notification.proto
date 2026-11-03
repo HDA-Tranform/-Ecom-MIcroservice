@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package notification;
+
+// Import gRPC‑HTTP mapping definitions
+import "google/api/annotations.proto";
+
+// Set the Go package name for the generated code.  Update the module path
+// to match your repository when generating the files.
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/notification;notificationpb";
+
+// Notification represents a single notification record stored by the service.
+// The ID field maps to the unique identifier in the underlying database.
+message Notification {
+  string id        = 1;
+  string user_id   = 2;     // Target user ID (may be empty if targeting role)
+  string role      = 3;     // Target role (admin, manager, staff)
+  string title     = 4;     // Short title of the notification
+  string message   = 5;     // Body of the notification
+  bool   is_read   = 6;     // Flag indicating if the notification has been read
+  int64  created_at = 7;    // Timestamp in seconds since epoch
+}
+
+// Request to create a new notification.  Either user_id or role must be
+// provided to determine the recipient(s).  If both are provided, user_id
+// will take precedence.
+message CreateNotificationRequest {
+  string user_id = 1;
+  string role    = 2;
+  string title   = 3;
+  string message = 4;
+}
+
+// Request to list notifications.  Supports paging via page and page_size.
+// You can supply either user_id or role to filter the results.
+message ListNotificationsRequest {
+  string user_id  = 1;
+  string role     = 2;
+  int32  page     = 3;
+  int32  page_size = 4;
+}
+
+// Response containing a list of notifications and total count.
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32   total                      = 2;
+}
+
+// Request to mark a notification as read by its ID.
+message MarkAsReadRequest {
+  string notification_id = 1;
+}
+
+// Empty message used for health checks and empty responses.
+message Empty {}
+
+// The NotificationService defines RPC methods for creating, listing and
+// marking notifications.  Each RPC is annotated with an HTTP rule to
+// expose it via gRPC‑Gateway when generating the REST gateway.
+service NotificationService {
+  // Create a new notification.  If user_id is provided the notification
+  // will be delivered to that specific user.  Otherwise, role will be used
+  // to deliver to all users with that role.
+  rpc CreateNotification(CreateNotificationRequest) returns (Notification) {
+    option (google.api.http) = {
+      post: "/v1/notifications"
+      body: "*"
+    };
+  }
+
+  // Retrieve notifications for a given user or role.  The user_id or role
+  // fields in the request determine how notifications are filtered.  If both
+  // are provided, user_id takes precedence.
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse) {
+    option (google.api.http) = {
+      get: "/v1/notifications"
+      additional_bindings {
+        get: "/v1/notifications/user/{user_id}"
+      }
+    };
+  }
+
+  // Mark a notification as read by its ID.  The updated notification is
+  // returned.  This allows clients to update the UI immediately after
+  // acknowledging the notification.
+  rpc MarkAsRead(MarkAsReadRequest) returns (Notification) {
+    option (google.api.http) = {
+      post: "/v1/notifications/{notification_id}/read"
+      body: "*"
+    };
+  }
+
+  // HealthCheck is a simple RPC used by container orchestration platforms
+  // and load balancers to verify that the service is alive.  It returns
+  // an empty response on success.
+  rpc HealthCheck(Empty) returns (Empty) {
+    option (google.api.http) = {
+      get: "/v1/notifications/health"
+    };
+  }
+}
