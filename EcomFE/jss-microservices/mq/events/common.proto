@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/mq/gen/events";
+import "google/protobuf/timestamp.proto";
+
+// Generic event envelope for routing
+message EventEnvelope {
+  string event_type = 1;             // EvenType (is topic, we need this to identify a handler for each topic)
+  string event_id = 2;             // Unique event identifier
+  google.protobuf.Timestamp timestamp = 3;
+  int32 version = 4;               // Event schema version
+  bytes payload = 5;               // Serialized protobuf event
+  map<string, string> metadata = 6; // Additional context
+}

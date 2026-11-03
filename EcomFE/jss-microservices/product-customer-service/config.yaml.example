@@ -1,0 +1,7 @@
+DB_SOURCE: postgresql://root:secret@localhost:9999/jss_product?sslmode=disable
+CLOUDINARY:
+  CLOUDINARY_URL: 
+  CLOUDINARY_NAME: nil 
+  CLOUDINARY_API_KEY: 
+  CLOUDINARY_API_SECRET: 
+  CLOUDINARY_UPLOAD_FOLDER: jss 

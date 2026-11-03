@@ -1,0 +1,260 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jss-network
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set myminio http://minio:9000 minio minio123 &&
+        mc mb --ignore-existing myminio/loki &&
+        mc mb --ignore-existing myminio/tempo &&
+        echo 'Buckets created'; exit 0
+      "
+    networks:
+      - jss-network
+    restart: "no"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks: [ jss-network ]
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    networks: [ jss-network ]
+
+  promtail:
+    image: grafana/promtail:2.9.1
+    container_name: promtail
+    command: [ "-config.file=/etc/promtail/config.yml" ]
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro # đọc file log
+      - /var/run/docker.sock:/var/run/docker.sock:ro # docker_sd
+    ports:
+      - "9080:9080" # để debug /targets, /metrics
+    networks: [ jss-network ]
+    depends_on:
+      loki:
+        condition: service_started
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: tempo
+    volumes:
+      - ./monitoring/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    command: -config.file=/etc/tempo/tempo.yaml
+    ports:
+      - "4317:4317"
+      - "3200:3200"
+    networks: [ jss-network ]
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+  grafana:
+    image: grafana/grafana:10.2.1
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks: [ jss-network ]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./mq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    environment:
+      # Load exchange/queue/binding/users từ file definitions.json
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: >
+        -rabbitmq_management load_definitions "/etc/rabbitmq/definitions.json"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jss-network
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    env_file:
+      - ./notification-service/.env.example
+    environment:
+      - RABBITMQ_URL=amqp://noti:noti123@rabbitmq:5672/
+      - SUBSCRIBER_NAME=noti.notification.create
+
+    ports:
+      - "50022:50022"
+      - "8087:8082"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - jss-network
+
+  seed:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: auth-seed
+    env_file:
+      - ./auth-service/.env.example
+    command: [ "./seed" ]
+    networks:
+      - jss-network
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: auth-service
+    env_file:
+      - ./auth-service/.env.example
+    ports:
+      - "50011:50011"
+      - "8081:8001"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks: [ jss-network ]
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    env_file:
+      - ./order-service/.env.example
+    environment:
+      # Nếu bạn dùng Atlas như auth-service thì override tại đây (không cần mongo container)
+      # MONGO_URI: "mongodb+srv://<user>:<pass>@<cluster>/<DB>?retryWrites=true&w=majority"
+      # MONGO_DB:  "OrderService"
+
+      # Địa chỉ GRPC các service phụ thuộc trong docker network
+      AUTH_GRPC_ADDR: auth-service:50011
+      PRODUCT_GRPC_ADDR: product-service:50001
+      LOYALTY_GRPC_ADDR: loyalty-service:50051
+
+      # RabbitMQ (khớp với cluster hiện tại đang load từ definitions.json)
+      RABBITMQ_URL: amqp://noti:noti123@rabbitmq:5672/
+      EXCHANGE_NAME: notifications
+      PUBLISHER_NAME: order-service
+    ports:
+      - "50033:50033" # gRPC (nếu bạn cần call trực tiếp từ ngoài)
+      - "8083:8083" # HTTP Gateway (Kong sẽ forward vào đây)
+    depends_on:
+      auth-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      # Hai service dưới đây cần chạy (trong compose khác hoặc thêm vào compose này)
+      # Nếu đang chạy ở compose khác thì bỏ depends_on cũng được
+      # product-customer-service:
+      #   condition: service_started
+      # loyalty-service:
+      #   condition: service_started
+    networks: [ jss-network ]
+
+  kong:
+    image: kong:3.3.1
+    container_name: kong
+    restart: always
+    env_file:
+      - .env
+    environment:
+      KONG_DATABASE: off
+      JWT_SECRET: ${JWT_SECRET}
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8014
+    ports:
+      - "8000:8000"
+      - "8014:8004"
+      - "8443:8443"
+      - "8444:8444"
+    volumes:
+      - ./api-gateway/kong.yml:/usr/local/kong/declarative/kong.yml:ro
+    networks: [ jss-network ]
+    healthcheck:
+      test: [ "CMD", "kong", "health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+  kong_data:
+  minio_data:
+  prometheus_data:
+  loki_data:
+  tempo_data:
+  grafana_data:
+
+
+networks:
+  jss-network:

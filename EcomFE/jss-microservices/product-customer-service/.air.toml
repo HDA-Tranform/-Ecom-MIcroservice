@@ -1,0 +1,17 @@
+root = "."
+
+[build]
+  # The command to build your Go app
+  cmd = "go build -o ./cmd/main ."
+  # The binary that Air will run after building
+  bin = "cmd/main"
+  # Delay to wait after file change (ms)
+  delay = 1000
+  # Which extensions to watch
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  # Which folders/files to ignore
+  exclude_dir = ["tmp", "vendor", "node_modules"]
+
+[log]
+  # Show timestamps in log
+  time = true

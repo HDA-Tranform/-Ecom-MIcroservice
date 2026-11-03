@@ -1,0 +1,16 @@
+version: '3.9'
+services:
+  rabbitmq-1:
+    image: rabbitmq:3.13-management   # bản mới nhất có plugin UI
+    container_name: rabbitmq-1
+    ports:
+      - "5672:5672"   # cổng AMQP để app connect
+      - "15672:15672" # cổng UI management
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:

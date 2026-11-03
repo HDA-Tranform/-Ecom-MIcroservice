@@ -1,0 +1,10 @@
+TRUNCATE TABLE gold_prices RESTART IDENTITY CASCADE;
+
+INSERT INTO gold_prices (date, gold_id, gold_type, buy_price, sell_price) VALUES
+  ('2025-09-02 09:02:00', 1, 'QUÀ MỪNG BẢN VỊ VÀNG (Quà Mừng Bản Vị Vàng)', 12470000, 12770000),
+  ('2025-09-02 09:02:00', 2, 'VÀNG NGUYÊN LIỆU (Vàng thị trường)', 11430000, 0),
+  ('2025-09-02 09:02:00', 3, 'VÀNG MIẾNG VRTL (Vàng Rồng Thăng Long)', 12470000, 12770000),
+  ('2025-09-02 09:02:00', 4, 'NHẪN TRÒN TRƠN (Vàng Rồng Thăng Long)', 12470000, 12770000),
+  ('2025-09-02 09:02:00', 5, 'TRANG SỨC VÀNG RỒNG THĂNG LONG 999.9 (Vàng BTMC)', 12240000, 12620000),
+  ('2025-09-02 09:02:00', 6, 'TRANG SỨC VÀNG RỒNG THĂNG LONG 99.9 (Vàng BTMC)', 12230000, 12610000),
+  ('2025-09-02 09:02:00', 7, 'VÀNG MIẾNG SJC (Vàng SJC)', 12860000, 13060000);

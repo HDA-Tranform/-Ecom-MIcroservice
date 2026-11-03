@@ -1,0 +1,815 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: auth-service
+    url: http://auth-service:8001
+    routes:
+      - name: login
+        paths: [/v1/auth/login]
+        strip_path: false
+        methods: [POST, OPTIONS]
+
+      - name: refresh-token
+        paths: [/v1/auth/refresh-token]
+        strip_path: false
+        methods: [POST]
+
+      - name: logout
+        paths: [/v1/auth/logout]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: validate-token
+        paths: [/v1/auth/validate]
+        strip_path: false
+        methods: [POST, OPTIONS]
+
+  - name: user-service
+    url: http://auth-service:8001
+    routes:
+      - name: list-users
+        paths: [/v1/users]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: create-user
+        paths: [/v1/users]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-user
+        paths:
+          - "~/v1/users/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-me
+        paths: [/v1/users/me]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: update-user
+        paths:
+          - "~/v1/users/([0-9]+)$"
+        strip_path: false
+        methods: [PUT, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-user
+        paths:
+          - "~/v1/users/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+  # Order service exposes endpoints for creating, retrieving and listing orders.
+  - name: order-service
+    url: http://order-service:8083
+    routes:
+      - name: create-order
+        paths: [/v1/orders]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+      - name: get-order
+        # Use a regex path to capture numeric order IDs at the end of the path
+        paths:
+          - "~/v1/orders/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+      - name: list-orders
+        paths: [/v1/orders]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+      - name: invoice-order
+        paths:
+          - "~/v1/orders/([0-9]+)/invoice$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 300
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+  # Loyalty service manages customer loyalty points and vouchers
+  - name: loyalty-service
+    url: http://loyalty-service:8080
+    routes:
+      # Loyalty Points routes
+      - name: create-loyalty-point
+        paths: [/v1/loyalty-points]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-loyalty-point
+        paths:
+          - "~/v1/loyalty-points/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: list-loyalty-points
+        paths: [/v1/loyalty-points]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-loyalty-points-by-customer
+        paths:
+          - "~/v1/customers/([0-9]+)/loyalty-points$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-loyalty-points-by-source
+        paths: [/v1/loyalty-points/source/*]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: update-loyalty-point
+        paths:
+          - "~/v1/loyalty-points/([0-9]+)$"
+        strip_path: false
+        methods: [PUT, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-loyalty-point
+        paths:
+          - "~/v1/loyalty-points/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-customer-total-points
+        paths:
+          - "~/v1/customers/([0-9]+)/total-points$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      # Voucher routes
+      - name: create-voucher
+        paths: [/v1/vouchers]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-voucher
+        paths:
+          - "~/v1/vouchers/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-voucher-by-code
+        paths: [/v1/vouchers/code/*]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-active-vouchers
+        paths: [/v1/vouchers/active]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: list-vouchers
+        paths: [/v1/vouchers]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: update-voucher
+        paths:
+          - "~/v1/vouchers/([0-9]+)$"
+        strip_path: false
+        methods: [PUT, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-voucher
+        paths:
+          - "~/v1/vouchers/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      # Customer Voucher routes
+      - name: create-customer-voucher
+        paths: [/v1/customer-vouchers]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-customer-voucher
+        paths:
+          - "~/v1/customer-vouchers/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+          # - name: jwt
+          #   config:
+          #     key_claim_name: iss
+          #     secret_is_base64: false
+          #     claims_to_verify: [exp]
+
+      - name: get-customer-vouchers
+        paths:
+          - "~/v1/customers/([0-9]+)/vouchers$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-customer-vouchers-by-status
+        paths:
+          - "~/v1/customers/([0-9]+)/vouchers/status/([^/]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 300
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-all-customer-vouchers
+        paths: [/v1/customer-vouchers]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-available-vouchers-for-customer
+        paths:
+          - "~/v1/customers/([0-9]+)/available-vouchers$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: use-customer-voucher
+        paths:
+          - "~/v1/customer-vouchers/([0-9]+)/use$"
+        strip_path: false
+        methods: [POST, OPTIONS]
+        regex_priority: 300
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: update-customer-voucher-status
+        paths:
+          - "~/v1/customer-vouchers/([0-9]+)/status$"
+        strip_path: false
+        methods: [PUT, OPTIONS]
+        regex_priority: 300
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-customer-voucher
+        paths:
+          - "~/v1/customer-vouchers/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: calculate-discount-amount
+        paths: [/v1/calculate-discount-amount]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: using-voucher
+        paths: [/v1/using-voucher]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+  # Market service manages gold prices and buyback policies
+  - name: market-service
+    url: http://market-service:8080
+    routes:
+      # Gold Price routes
+      - name: create-gold-price
+        paths: [/v1/gold-prices]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-gold-price
+        paths:
+          - "~/v1/gold-prices/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: get-latest-gold-price
+        paths: [/v1/latest-gold-prices]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: list-gold-prices
+        paths: [/v1/gold-prices]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: update-gold-price
+        paths:
+          - "~/v1/gold-prices/([0-9]+)$"
+        strip_path: false
+        methods: [PUT, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-gold-price
+        paths:
+          - "~/v1/gold-prices/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      # Buyback Policy routes
+      - name: create-buyback-policy
+        paths: [/v1/buyback-policies]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-buyback-policy
+        paths:
+          - "~/v1/buyback-policies/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: list-buyback-policies
+        paths: [/v1/buyback-policies]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: update-buyback-policy
+        paths:
+          - "~/v1/buyback-policies/([0-9]+)$"
+        strip_path: false
+        methods: [PUT, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-buyback-policy
+        paths:
+          - "~/v1/buyback-policies/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+  # Product service manages products and customers
+  - name: product-service
+    url: http://product-service:8001
+    routes:
+      - name: dummy-endpoint
+        paths: [/v1/dummy]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      # Product routes
+      - name: create-product
+        paths: [/v1/products]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-product
+        paths:
+          - "~/v1/products/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        # plugins:
+        #   - name: jwt
+            # config:
+            #   key_claim_name: iss
+            #   secret_is_base64: false
+            #   claims_to_verify: [exp]
+
+      - name: list-products
+        paths: [/v1/products]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      - name: update-product
+        paths:
+          - "~/v1/products/([0-9]+)$"
+        strip_path: false
+        methods: [PATCH, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-product
+        paths:
+          - "~/v1/products/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      # Product Category routes
+      - name: list-product-categories
+        paths: [/v1/product-categories]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        # plugins:
+        #   - name: jwt
+        #     config:
+        #       key_claim_name: iss
+        #       secret_is_base64: false
+        #       claims_to_verify: [exp]
+
+      # Customer routes (Product service)
+      - name: create-customer-product
+        paths: [/v1/customers]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: get-customer-product
+        paths:
+          - "~/v1/customers/([0-9]+)$"
+        strip_path: false
+        methods: [GET, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: list-customers-product
+        paths: [/v1/customers]
+        strip_path: false
+        methods: [GET, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: update-customer-product
+        paths:
+          - "~/v1/customers/([0-9]+)$"
+        strip_path: false
+        methods: [PATCH, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      - name: delete-customer-product
+        paths:
+          - "~/v1/customers/([0-9]+)$"
+        strip_path: false
+        methods: [DELETE, OPTIONS]
+        regex_priority: 200
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      # File upload route
+      - name: upload-file
+        paths: [/v1/upload]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+      # Purchase route
+      - name: purchase-product
+        paths: [/v1/purchase]
+        strip_path: false
+        methods: [POST, OPTIONS]
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify: [exp]
+
+plugins:
+  - name: cors
+    config:
+      origins: ["*"]
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+      headers: ["*"]
+      exposed_headers: ["*"]
+      max_age: 3600
+      preflight_continue: false
+
+      # credentials: true
+
+consumers:
+  - username: internal-auth-client
+
+jwt_secrets:
+  - consumer: internal-auth-client
+    key: "auth-service"
+    secret: "coderprovip&&**__provip01"
+    algorithm: HS256

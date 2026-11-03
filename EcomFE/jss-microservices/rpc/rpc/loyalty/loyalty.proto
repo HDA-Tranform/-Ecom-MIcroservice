@@ -1,0 +1,597 @@
+syntax = "proto3";
+
+package loyalty;
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/loyalty";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "loyalty/common.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Loyalty Service API";
+    version: "1.0";
+    description: "API for managing customer loyalty points and vouchers";
+    contact: {
+      name: "Loyalty Service Team";
+      email: "loyalty@yourcompany.com";
+    };
+    license: {
+      name: "MIT License";
+      url: "https://opensource.org/licenses/MIT";
+    };
+  };
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+  host: "api.yourcompany.com";
+  base_path: "/v1";
+  tags: [
+    {
+      name: "Loyalty Points";
+      description: "Operations related to loyalty points";
+    },
+    {
+      name: "Vouchers";
+      description: "Operations related to vouchers";
+    },
+    {
+      name: "Customer Vouchers";
+      description: "Operations related to customer voucher assignments";
+    }
+  ];
+};
+
+// ===== LOYALTY POINTS =====
+
+// Request messages for loyalty points
+message CreateLoyaltyPointRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Loyalty Point Request"
+      description: "Request to create a new loyalty point record"
+      required: ["customer_id", "points", "source"]
+    }
+  };
+
+  int32 customer_id = 1;
+  int32 points = 2;
+  string source = 3;
+  optional int32 reference_id = 4;
+}
+
+message GetLoyaltyPointRequest {
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the loyalty point record"
+  }];
+}
+
+message GetLoyaltyPointsByCustomerRequest {
+  int32 customer_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Customer ID to filter by"
+  }];
+  common.PaginationRequest pagination = 2;
+}
+
+message GetLoyaltyPointsBySourceRequest {
+  string source = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Source to filter by"
+  }];
+  common.PaginationRequest pagination = 2;
+}
+
+message GetAllLoyaltyPointsRequest {
+  common.PaginationRequest pagination = 1;
+}
+
+message UpdateLoyaltyPointRequest {
+  int32 id = 1;
+  int32 points = 2;
+  string source = 3;
+  optional int32 reference_id = 4;
+}
+
+message DeleteLoyaltyPointRequest {
+  int32 id = 1;
+}
+
+message GetCustomerTotalPointsRequest {
+  int32 customer_id = 1;
+}
+
+// Response messages for loyalty points
+message GetLoyaltyPointResponse {
+  common.LoyaltyPoint loyalty_point = 1;
+}
+
+message GetLoyaltyPointsResponse {
+  repeated common.LoyaltyPoint loyalty_points = 1;
+  common.PaginationResponse pagination = 2;
+}
+
+message GetCustomerTotalPointsResponse {
+  int32 total_points = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Total points for the customer"
+  }];
+  int32 customer_id = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Customer ID"
+  }];
+}
+
+// ===== VOUCHERS =====
+
+// Request messages for vouchers
+message CreateVoucherRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Voucher Request"
+      description: "Request to create a new voucher"
+      required: ["code", "discount_type", "discount_value", "start_date", "end_date"]
+    }
+  };
+
+  string code = 1;
+  optional string description = 2;
+  common.Voucher.DiscountType discount_type = 3;
+  double discount_value = 4;
+  string start_date = 5;
+  string end_date = 6;
+  optional int32 usage_limit = 7;
+  string target = 8; // CUSTOMER OR ALL
+}
+
+message GetVoucherRequest {
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the voucher"
+  }];
+}
+
+message GetVoucherByCodeRequest {
+  string code = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Voucher code"
+  }];
+}
+
+message GetActiveVouchersRequest {
+  common.PaginationRequest pagination = 1;
+}
+
+message GetAllVouchersRequest {
+  common.PaginationRequest pagination = 1;
+}
+
+message UpdateVoucherRequest {
+  int32 id = 1;
+  string code = 2;
+  optional string description = 3;
+  common.Voucher.DiscountType discount_type = 4;
+  double discount_value = 5;
+  string start_date = 6;
+  string end_date = 7;
+  optional int32 usage_limit = 8;
+}
+
+message DeleteVoucherRequest {
+  int32 id = 1;
+}
+
+// Response messages for vouchers
+message GetVoucherResponse {
+  common.Voucher voucher = 1;
+}
+
+message GetVouchersResponse {
+  repeated common.Voucher vouchers = 1;
+  common.PaginationResponse pagination = 2;
+}
+
+// ===== CUSTOMER VOUCHERS =====
+
+// Request messages for customer vouchers
+message CreateCustomerVoucherRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Create Customer Voucher Request"
+      description: "Request to assign a voucher to a customer"
+      required: ["customer_id", "voucher_id"]
+    }
+  };
+
+  int32 customer_id = 1;
+  int32 voucher_id = 2;
+  optional common.CustomerVoucher.Status status = 3;
+}
+
+message GetCustomerVoucherRequest {
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the customer voucher record"
+  }];
+}
+
+message GetCustomerVouchersRequest {
+  int32 customer_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Customer ID to filter by"
+  }];
+  common.PaginationRequest pagination = 2;
+}
+
+message GetCustomerVouchersByStatusRequest {
+  int32 customer_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Customer ID to filter by"
+  }];
+  common.CustomerVoucher.Status status = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Status to filter by"
+  }];
+  common.PaginationRequest pagination = 3;
+}
+
+message GetAllCustomerVouchersRequest {
+  common.PaginationRequest pagination = 1;
+}
+
+message UseCustomerVoucherRequest {
+  int32 id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "ID of the customer voucher to use"
+  }];
+}
+
+message UpdateCustomerVoucherStatusRequest {
+  int32 id = 1;
+  common.CustomerVoucher.Status status = 2;
+}
+
+message DeleteCustomerVoucherRequest {
+  int32 id = 1;
+}
+
+message GetAvailableVouchersForCustomerRequest {
+  int32 customer_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "Customer ID to get available vouchers for"
+  }];
+  common.PaginationRequest pagination = 2;
+}
+
+// Response messages for customer vouchers
+message GetCustomerVoucherResponse {
+  common.CustomerVoucher customer_voucher = 1;
+}
+
+message GetCustomerVouchersResponse {
+  repeated common.CustomerVoucher customer_vouchers = 1;
+  common.PaginationResponse pagination = 2;
+}
+
+message CalculateDiscountAmountRequest {
+  repeated string vouchers = 1;
+  double total_product_amount = 2;
+  double total_shipping_amount = 3;
+  int32 customer_id = 4; // for validate voucher usage limit
+}
+
+message CalculateDiscountAmountResponse {
+  double total_discount_amount = 1;
+  repeated CalculateDiscountAmountResponse_Voucher vouchers = 2;
+}
+
+message CalculateDiscountAmountResponse_Voucher {
+  string code = 1;
+  string title = 2;
+  double discount_amount = 3;
+  int32 id = 4;
+}
+
+message UsingVoucherRequest {
+  repeated string vouchers = 1;
+  double total_product_amount = 2;
+  double total_shipping_amount = 3;
+  int32 customer_id = 4;
+  int32 order_id = 5;
+}
+
+message UsingVoucherResponse {
+  double total_discount_amount = 1;
+  repeated CalculateDiscountAmountResponse_Voucher vouchers = 2;
+}
+
+// ===== SERVICE DEFINITION =====
+
+service Loyalty {
+  // Loyalty Points operations
+  rpc CreateLoyaltyPoint(CreateLoyaltyPointRequest) returns (GetLoyaltyPointResponse) {
+    option (google.api.http) = {
+      post: "/v1/loyalty-points"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Create a new loyalty point record";
+      description: "Creates a new loyalty point record for a customer";
+    };
+  }
+
+  rpc GetLoyaltyPoint(GetLoyaltyPointRequest) returns (GetLoyaltyPointResponse) {
+    option (google.api.http) = {
+      get: "/v1/loyalty-points/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Get a loyalty point record";
+      description: "Retrieves a specific loyalty point record by ID";
+    };
+  }
+
+  rpc GetLoyaltyPointsByCustomer(GetLoyaltyPointsByCustomerRequest) returns (GetLoyaltyPointsResponse) {
+    option (google.api.http) = {
+      get: "/v1/customers/{customer_id}/loyalty-points"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Get loyalty points by customer";
+      description: "Retrieves all loyalty point records for a specific customer";
+    };
+  }
+
+  rpc GetLoyaltyPointsBySource(GetLoyaltyPointsBySourceRequest) returns (GetLoyaltyPointsResponse) {
+    option (google.api.http) = {
+      get: "/v1/loyalty-points/source/{source}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Get loyalty points by source";
+      description: "Retrieves all loyalty point records for a specific source";
+    };
+  }
+
+  rpc GetAllLoyaltyPoints(GetAllLoyaltyPointsRequest) returns (GetLoyaltyPointsResponse) {
+    option (google.api.http) = {
+      get: "/v1/loyalty-points"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Get all loyalty points";
+      description: "Retrieves all loyalty point records with pagination";
+    };
+  }
+
+  rpc UpdateLoyaltyPoint(UpdateLoyaltyPointRequest) returns (GetLoyaltyPointResponse) {
+    option (google.api.http) = {
+      put: "/v1/loyalty-points/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Update a loyalty point record";
+      description: "Updates an existing loyalty point record";
+    };
+  }
+
+  rpc DeleteLoyaltyPoint(DeleteLoyaltyPointRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/loyalty-points/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Delete a loyalty point record";
+      description: "Deletes a specific loyalty point record";
+    };
+  }
+
+  rpc GetCustomerTotalPoints(GetCustomerTotalPointsRequest) returns (GetCustomerTotalPointsResponse) {
+    option (google.api.http) = {
+      get: "/v1/customers/{customer_id}/total-points"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Loyalty Points";
+      summary: "Get customer total points";
+      description: "Retrieves the total loyalty points for a customer";
+    };
+  }
+
+  // Voucher operations
+  rpc CreateVoucher(CreateVoucherRequest) returns (GetVoucherResponse) {
+    option (google.api.http) = {
+      post: "/v1/vouchers"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Create a new voucher";
+      description: "Creates a new voucher with discount details";
+    };
+  }
+
+  rpc GetVoucher(GetVoucherRequest) returns (GetVoucherResponse) {
+    option (google.api.http) = {
+      get: "/v1/vouchers/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Get a voucher";
+      description: "Retrieves a specific voucher by ID";
+    };
+  }
+
+  rpc GetVoucherByCode(GetVoucherByCodeRequest) returns (GetVoucherResponse) {
+    option (google.api.http) = {
+      get: "/v1/vouchers/code/{code}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Get voucher by code";
+      description: "Retrieves a voucher by its unique code";
+    };
+  }
+
+  rpc GetActiveVouchers(GetActiveVouchersRequest) returns (GetVouchersResponse) {
+    option (google.api.http) = {
+      get: "/v1/vouchers/active"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Get active vouchers";
+      description: "Retrieves all currently active vouchers";
+    };
+  }
+
+  rpc GetAllVouchers(GetAllVouchersRequest) returns (GetVouchersResponse) {
+    option (google.api.http) = {
+      get: "/v1/vouchers"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Get all vouchers";
+      description: "Retrieves all vouchers with pagination";
+    };
+  }
+
+  rpc UpdateVoucher(UpdateVoucherRequest) returns (GetVoucherResponse) {
+    option (google.api.http) = {
+      put: "/v1/vouchers/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Update a voucher";
+      description: "Updates an existing voucher";
+    };
+  }
+
+  rpc DeleteVoucher(DeleteVoucherRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/vouchers/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Vouchers";
+      summary: "Delete a voucher";
+      description: "Deletes a specific voucher";
+    };
+  }
+
+  // Customer Voucher operations
+  rpc CreateCustomerVoucher(CreateCustomerVoucherRequest) returns (GetCustomerVoucherResponse) {
+    option (google.api.http) = {
+      post: "/v1/customer-vouchers"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Delete customer voucher";
+      description: "Deletes a customer voucher assignment";
+    };
+  }
+
+  rpc GetAvailableVouchersForCustomer(GetAvailableVouchersForCustomerRequest) returns (GetVouchersResponse) {
+    option (google.api.http) = {
+      get: "/v1/customers/{customer_id}/available-vouchers"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Get available vouchers for customer";
+      description: "Retrieves all vouchers available for a customer to use, considering usage limits and current assignments";
+    };
+  }
+
+  rpc GetCustomerVoucher(GetCustomerVoucherRequest) returns (GetCustomerVoucherResponse) {
+    option (google.api.http) = {
+      get: "/v1/customer-vouchers/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Get customer voucher";
+      description: "Retrieves a specific customer voucher record";
+    };
+  }
+
+  rpc GetCustomerVouchers(GetCustomerVouchersRequest) returns (GetCustomerVouchersResponse) {
+    option (google.api.http) = {
+      get: "/v1/customers/{customer_id}/vouchers"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Get customer vouchers";
+      description: "Retrieves all vouchers for a specific customer";
+    };
+  }
+
+  rpc GetCustomerVouchersByStatus(GetCustomerVouchersByStatusRequest) returns (GetCustomerVouchersResponse) {
+    option (google.api.http) = {
+      get: "/v1/customers/{customer_id}/vouchers/status/{status}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Get customer vouchers by status";
+      description: "Retrieves customer vouchers filtered by status";
+    };
+  }
+
+  rpc GetAllCustomerVouchers(GetAllCustomerVouchersRequest) returns (GetCustomerVouchersResponse) {
+    option (google.api.http) = {
+      get: "/v1/customer-vouchers"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Get all customer vouchers";
+      description: "Retrieves all customer voucher records with pagination";
+    };
+  }
+
+  rpc UseCustomerVoucher(UseCustomerVoucherRequest) returns (GetCustomerVoucherResponse) {
+    option (google.api.http) = {
+      post: "/v1/customer-vouchers/{id}/use"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Use customer voucher";
+      description: "Marks a customer voucher as used";
+    };
+  }
+
+  rpc UpdateCustomerVoucherStatus(UpdateCustomerVoucherStatusRequest) returns (GetCustomerVoucherResponse) {
+    option (google.api.http) = {
+      put: "/v1/customer-vouchers/{id}/status"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Update customer voucher status";
+      description: "Updates the status of a customer voucher";
+    };
+  }
+
+  rpc DeleteCustomerVoucher(DeleteCustomerVoucherRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/customer-vouchers/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Assign voucher to customer";
+      description: "Assigns a voucher to a customer";
+    };
+  }
+
+  rpc CalculateDiscountAmount(CalculateDiscountAmountRequest) returns (CalculateDiscountAmountResponse) {
+    option (google.api.http) = {
+      post: "/v1/calculate-discount-amount"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Customer Vouchers";
+      summary: "Calculate discount amount";
+    };
+  }
+
+  rpc UsingVoucher(UsingVoucherRequest) returns (UsingVoucherResponse) {
+    option (google.api.http) = {
+      post: "/v1/using-voucher"
+      body: "*"
+    };
+      option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Using Vouchers";
+      summary: "Using vouchers, calculate discount amount";
+    };
+  }
+}

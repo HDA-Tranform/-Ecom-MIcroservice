@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package order;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/linhhuynhcoding/jss-microservices/rpc/gen/order";
+
+// ===== Models =====
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  PENDING   = 1;
+  PAID      = 2;
+  COMPLETED = 3;
+  CANCELED  = 4;
+}
+
+message StatusHistory {
+  OrderStatus status = 1;
+  string note = 2;
+  google.protobuf.Timestamp at = 3;
+}
+
+message OrderItem {
+  int32  product_id    = 1;
+  int32  quantity      = 2;
+  double unit_price    = 3;
+
+  string product_name  = 10;
+  string product_image = 11;
+  double line_total    = 12;
+}
+
+// ===== Requests/Responses =====
+message CreateOrderItem {
+  int32 product_id = 1;
+  int32 quantity   = 2;
+}
+
+message CreateOrderRequest {
+  string customer_name = 1;
+  repeated CreateOrderItem items = 2;
+  repeated string voucher_codes = 3;
+  double shipping_cost = 4;
+
+  // NEW: optional customer_id (nếu nhân viên chọn khách trong hệ thống)
+  int32 customer_id = 5;
+}
+
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+message GetOrderRequest {
+  int32 order_id = 1;
+}
+
+message ListOrdersRequest {
+  int32 page  = 1; // from 0
+  int32 limit = 2;
+}
+
+message PaginationResponse {
+  int32 total    = 1;
+  int32 limit    = 2;
+  int32 page     = 3;
+  bool  has_next = 4;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  PaginationResponse pagination = 2;
+}
+
+
+message GenerateInvoiceResponse {
+  string file_name = 1;
+  bytes  file_data = 2; // PDF bytes (gateway sẽ encode base64 trong JSON)
+}
+
+// ===== Entity =====
+message Order {
+  int32  order_id       = 1;
+  string customer_name  = 2;
+  string staff_id       = 3;
+  repeated OrderItem items = 4;
+  repeated string voucher_codes = 5;
+
+  double total_price     = 6;
+  double discount_amount = 7;
+  double final_price     = 8;
+  double shipping_cost   = 9;
+  google.protobuf.Timestamp created_at = 10;
+
+  OrderStatus status = 11;
+  repeated StatusHistory status_history = 12;
+
+  // NEW: optional customer_id được lưu lại
+  int32 customer_id = 13;
+}
+
+// ===== Service =====
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
+    option (google.api.http) = {
+      post: "/v1/orders"
+      body: "*"
+    };
+  }
+
+  rpc GetOrder(GetOrderRequest) returns (Order) {
+    option (google.api.http) = {
+      get: "/v1/orders/{order_id}"
+    };
+  }
+
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders"
+    };
+  }
+
+  // --- thêm trong service OrderService ---
+  rpc GenerateInvoice(GetOrderRequest) returns (GenerateInvoiceResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders/{order_id}/invoice"
+    };
+  }
+}

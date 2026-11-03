@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  product-postgres:
+    image: postgres:14-alpine
+    container_name: product-postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=jss_product
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root -d jss_product" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "9999:5432"
+    networks:
+      - jss-network
+    volumes:
+      - ./data-product-postgres/:/var/lib/postgresql/data
+  product-redis:
+    image: redis:7-alpine
+
+  product-migrate:
+    build: ./product-customer-service
+    command: [ "/app/migrate", "-path", "./db/migration", "-database", "postgresql://root:secret@product-postgres:5432/jss_product?sslmode=disable", "-verbose", "up" ]
+    depends_on:
+      - product-postgres
+    networks:
+      - jss-network
+
+  product-seed:
+    build: ./product-customer-service
+    command: [ "/app/scripts/seed/seed" ]
+    environment:
+      - DB_SOURCE=postgresql://root:secret@product-postgres:5432/jss_product?sslmode=disable
+    depends_on:
+      - product-migrate
+    networks:
+      - jss-network
+
+  product-service:
+    build:
+      context: ./product-customer-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "8082:8001"
+      - "50002:50001"
+    environment:
+      - DB_SOURCE=postgresql://root:secret@product-postgres:5432/jss_product?sslmode=disable
+      - REDIS_ADDRESS=redis:6379
+    depends_on:
+      - product-migrate
+      - product-postgres
+      - product-redis
+    networks:
+      - jss-network
+    # entrypoint:
+    #   [
+    #     "/app/wait-for.sh",
+    #     "postgres:5432",
+    #     "--",
+    #     "/app/start.sh"
+    #   ]
+    # command: [ "/app/main" ]
+volumes:
+  product-postgres-volume:
+networks:
+  jss-network:

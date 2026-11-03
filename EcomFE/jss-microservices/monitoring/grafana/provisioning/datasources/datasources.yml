@@ -1,0 +1,29 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: PROM
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Loki
+    uid: LOKI
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      # Link trace_id trong log sang Tempo
+      derivedFields:
+        - name: trace_id
+          matcherRegex: '"trace_id":"([a-f0-9]{32})"'
+          datasourceUid: TEMPO # trỏ đến datasource Tempo bên dưới
+          # (tuỳ chọn) mở Explore Tempo ngay tại span đó
+          url: "$${__value.raw}"
+
+  - name: Tempo
+    uid: TEMPO
+    type: tempo
+    access: proxy
+    url: http://tempo:3200

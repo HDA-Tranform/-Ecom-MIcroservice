@@ -1,0 +1,13 @@
+{
+  "users": [{ "name": "noti", "password": "noti123", "tags": "management" }],
+  "permissions": [
+    {
+      "user": "noti",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "vhosts": [{ "name": "/" }]
+}
